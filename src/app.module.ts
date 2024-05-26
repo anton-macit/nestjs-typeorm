@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './users/user.entity';
+import { StatusController } from './status/status.controller';
 
 @Module({
   imports: [
@@ -13,5 +14,6 @@ import { User } from './users/user.entity';
       synchronize: true,
     }),
   ],
+  controllers: [StatusController],
 })
 export class AppModule {}
