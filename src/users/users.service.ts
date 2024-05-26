@@ -1,54 +1,55 @@
 import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
+import { User } from './user.entity';
 import bcrypt from 'bcryptjs';
-import { randomUUID } from 'crypto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { ListAllEntities } from './dto/listAllEntities.dto';
 
 @Injectable()
 export class UsersService {
-  private readonly users: User[] = [];
-
   private getHash = (password: string) => bcrypt.hash(password, 10);
+
+  constructor(
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
     const { password, ...user } = createUserDto;
     const hash = await this.getHash(password);
-    this.users.push({ ...user, id: randomUUID(), hash });
+    const insertResult = await this.usersRepository.insert({ ...user, hash });
+    return this.findOne(insertResult.identifiers[0].id);
   }
 
-  findAll(limit: number) {
-    return this.users
-      .map((u) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { hash, ...user } = u;
-        return user;
-      })
-      .slice(0, limit);
+  findAll(query: ListAllEntities) {
+    return this.usersRepository.findAndCount({
+      order: { id: 'ASC' },
+      take: query.limit,
+      skip: query.offset,
+      select: ['id', 'fullName', 'preferredName'],
+    });
   }
 
   findOne(id: string) {
-    return `This action returns a #${id} user`;
+    return this.usersRepository.findOneOrFail({
+      where: { id },
+      select: ['id', 'fullName', 'preferredName'],
+    });
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
-    const user = this.users.find((v) => v.id === id);
-    if (user) {
-      if (updateUserDto.password) {
-        user.hash = await this.getHash(updateUserDto.password);
-      }
-      user.fullName = updateUserDto.fullName ?? user.fullName;
-      user.preferredName = updateUserDto.preferredName ?? user.preferredName;
+    let hash;
+    if (updateUserDto.password) {
+      hash = await this.getHash(updateUserDto.password);
+      delete updateUserDto.password;
     }
-
-    return `This action updates a #${id} user`;
+    await this.usersRepository.update({ id }, { ...updateUserDto, hash });
+    return this.findOne(id);
   }
 
-  remove(id: string) {
-    const idx = this.users.findIndex((v) => v.id === id);
-    if (idx > -1) {
-      this.users.splice(idx, 1);
-    }
-    return `This action removes a #${id} user`;
+  async remove(id: string) {
+    return !!(await this.usersRepository.delete({ id })).affected;
   }
 }
