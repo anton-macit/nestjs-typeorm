@@ -2,14 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './user.entity';
-import bcrypt from 'bcryptjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ListAllEntities } from './dto/listAllEntities.dto';
+import { hash } from 'bcryptjs';
+import { EntityNotFoundError } from 'typeorm/error/EntityNotFoundError';
 
 @Injectable()
 export class UsersService {
-  private getHash = (password: string) => bcrypt.hash(password, 10);
+  getHash = (password: string) => hash(password, 10);
 
   constructor(
     @InjectRepository(User)
@@ -23,11 +24,11 @@ export class UsersService {
     return this.findOne(insertResult.identifiers[0].id);
   }
 
-  findAll(query: ListAllEntities) {
+  findAll(query?: ListAllEntities | undefined) {
     return this.usersRepository.findAndCount({
       order: { id: 'ASC' },
-      take: query.limit,
-      skip: query.offset,
+      take: query?.limit ?? 10,
+      skip: query?.offset ?? 0,
       select: ['id', 'fullName', 'preferredName'],
     });
   }
@@ -50,6 +51,9 @@ export class UsersService {
   }
 
   async remove(id: string) {
-    return !!(await this.usersRepository.delete({ id })).affected;
+    const deleted = !!(await this.usersRepository.delete({ id })).affected;
+    if (!deleted) {
+      throw new EntityNotFoundError(User, { id });
+    }
   }
 }
