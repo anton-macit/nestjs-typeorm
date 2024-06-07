@@ -29,7 +29,6 @@ describe('UsersController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
       providers: [
-        UsersService,
         // Provide your mock instead of the actual service
         {
           provide: UsersService,
