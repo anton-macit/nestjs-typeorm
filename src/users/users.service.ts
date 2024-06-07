@@ -29,14 +29,20 @@ export class UsersService {
       order: { id: 'ASC' },
       take: query?.limit ?? 10,
       skip: query?.offset ?? 0,
-      select: ['id', 'fullName', 'preferredName'],
+      select: ['id', 'username', 'fullName', 'preferredName'],
     });
   }
 
   findOne(id: string) {
     return this.usersRepository.findOneOrFail({
       where: { id },
-      select: ['id', 'fullName', 'preferredName'],
+      select: ['id', 'username', 'fullName', 'preferredName'],
+    });
+  }
+
+  findOneByUsername(username: string) {
+    return this.usersRepository.findOne({
+      where: { username },
     });
   }
 

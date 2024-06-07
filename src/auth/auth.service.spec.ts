@@ -8,15 +8,34 @@ import { ConfigService } from '@nestjs/config';
 describe('AuthService', () => {
   let service: AuthService;
 
+  const user = {
+    id: '1bd5ad66-077d-4442-b379-1e33f02f27f1',
+    username: 'username',
+    fullName: 'full name',
+    preferredName: 'preferred name',
+    hash: '$2a$10$6XznOYttJ/7OTjHv3jApM.9P8OqMSWwmtEGp9P8.YpqFNyq7AKRVy',
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         {
           provide: UsersService,
-          useValue: {},
+          useValue: {
+            findOneByUsername: jest
+              .fn()
+              .mockImplementation((username: string) =>
+                username === user.username ? user : null,
+              ),
+          },
         },
-        JwtService,
+        {
+          provide: JwtService,
+          useValue: {
+            signAsync: jest.fn().mockImplementation(() => '==='),
+          },
+        },
         {
           provide: ConfigService,
           useValue: {
@@ -49,8 +68,20 @@ describe('AuthService', () => {
     expect(await service.loginAdmin('', '', '1')).toEqual(false);
   });
 
-  test('test method signIn ', async () => {
+  test('test method signIn user access, fail, no user found', async () => {
     await expect(service.signIn('1', '1')).rejects.toThrow('Unauthorized');
+  });
+
+  test('test method signIn user access, fail, wrong password', async () => {
+    await expect(service.signIn('username', '1')).rejects.toThrow(
+      'Unauthorized',
+    );
+  });
+
+  test('test method signIn user access, success', async () => {
+    expect(await service.signIn('username', '123')).toEqual({
+      access_token: '===',
+    });
   });
 
   test('test method signIn admin success', async () => {

@@ -13,6 +13,7 @@ describe('UsersService', () => {
 
   const mockUser = {
     id: '0a29ba65-f4c4-4803-8fd2-5f4163b0e455',
+    username: 'username',
     fullName: 'full name',
     preferredName: 'preferred name',
     hash: 'hash',
@@ -63,7 +64,7 @@ describe('UsersService', () => {
     });
     expect(await service.create(createUserDto)).toEqual(mockUser);
     expect(repositoryMock.findOneOrFail).toHaveBeenCalledWith({
-      select: ['id', 'fullName', 'preferredName'],
+      select: ['id', 'username', 'fullName', 'preferredName'],
       where: { id: mockUser.id },
     });
   });
@@ -105,5 +106,16 @@ describe('UsersService', () => {
     await expect(service.remove(mockUser.id)).rejects.toThrow(
       EntityNotFoundError,
     );
+  });
+
+  test('test method findOneByUsername', async () => {
+    repositoryMock.findOne?.mockReturnValue(mockUser);
+
+    expect(await service.findOneByUsername(mockUser.username)).toEqual(
+      mockUser,
+    );
+    expect(repositoryMock.findOne).toHaveBeenCalledWith({
+      where: { username: 'username' },
+    });
   });
 });

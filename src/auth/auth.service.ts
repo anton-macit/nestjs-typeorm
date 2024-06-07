@@ -3,6 +3,8 @@ import { UsersService } from '../users/users.service';
 import { UserDto } from './dto/userDto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { Role } from './role.enum';
+import { compare } from 'bcryptjs';
 
 const adminId = '2223f3bc-a6fd-4432-a44b-fb02eaad982c';
 
@@ -26,8 +28,8 @@ export class AuthService {
     let user: UserDto | false | undefined;
     if (username === adminUsername) {
       user = this.loginAdmin(username, pass, adminPassword);
-      // } else {
-      // user = await loginUser(body);
+    } else {
+      user = await this.loginUser(username, pass);
     }
     if (!user) {
       throw new UnauthorizedException();
@@ -35,6 +37,24 @@ export class AuthService {
     return {
       access_token: await this.jwtService.signAsync(user),
     };
+  }
+
+  private async loginUser(
+    username: string,
+    pass: string,
+  ): Promise<UserDto | false> {
+    const dbUser = await this.usersService.findOneByUsername(username);
+    if (!dbUser) {
+      return false;
+    }
+    if (!(await compare(pass, dbUser.hash))) {
+      return false;
+    }
+    return {
+      id: dbUser.id,
+      username: dbUser.username,
+      roles: [Role.User],
+    } satisfies UserDto;
   }
 
   loginAdmin(
@@ -53,6 +73,7 @@ export class AuthService {
     return {
       id: adminId,
       username,
+      roles: [Role.Admin],
     } satisfies UserDto;
   }
 }
