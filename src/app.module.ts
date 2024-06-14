@@ -20,7 +20,7 @@ import configuration from './config/configuration';
         type: 'postgres',
         url: configService.get<string>('dbUrl'),
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: false,
       }),
       inject: [ConfigService],
     }),
